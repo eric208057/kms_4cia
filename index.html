@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4ª Cia - Sistema OBE</title>
+    <style>
+        body {
+            margin:0; padding:0;
+            font-family:Arial, sans-serif;
+            background:#000; color:#fff;
+            min-height:100vh;
+            display:flex; flex-direction:column;
+        }
+        header {
+            background:#1a1a1a;
+            padding:20px;
+            text-align:center;
+            border-bottom:2px solid #333;
+            position: relative;
+        }
+        h1 { margin:0; font-size:2.2rem; }
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            padding: 10px 20px;
+            background: #333;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .back-btn:hover { background: #555; }
+        .container { padding:20px; text-align:center; flex:1; }
+        .buttons-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(280px,1fr));
+            gap:20px;
+            max-width:1000px;
+            margin:40px auto 40px auto;
+        }
+        .btn {
+            background:#1a1a1a;
+            color:white;
+            padding:30px 15px;
+            font-size:1.4rem;
+            font-weight:bold;
+            text-decoration:none;
+            border-radius:12px;
+            box-shadow:0 4px 10px rgba(0,0,0,0.6);
+            border:2px solid transparent;
+            display:block;
+        }
+        .btn:hover { transform:translateY(-5px); }
+        .btn:nth-child(1){border-color:#8B0000;}
+        .btn:nth-child(2){border-color:#003366;}
+        .btn:nth-child(3){border-color:#4A4A4A;}
+        .btn:nth-child(4){border-color:#8B0000;}
+        .btn:nth-child(5){border-color:#003366;}
+        .btn:nth-child(6){border-color:#4A4A4A;}
+        footer {
+            background:#1a1a1a;
+            padding:15px;
+            text-align:center;
+            font-size:0.95rem;
+            color:#aaa;
+            margin-top:auto;
+            width:100%;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="../index.html" class="back-btn">← Menu Principal</a>
+        <h1>4ª Cia - Sistema OBE</h1>
+    </header>
+
+    <div class="container">
+        <div class="buttons-grid">
+            <a href="mapa_forca.html" class="btn">Mapa Força</a>
+            <a href="mapa_pontos_interesse.html" class="btn">Pontos de Interesse</a>
+            <a href="areas_risco.html" class="btn">Áreas de Risco</a>
+            <a href="pops.html" class="btn">POP's</a>
+            <a href="ordem_servico.html" class="btn">Ordem de Serviço</a>
+            <a href="cpp_pdf.html" class="btn">CPP (PDF)</a>
+        </div>
+    </div>
+
+    <footer>Operação Batalhão Escola • 4ª Cia • 2026</footer>
+
+</body>
+</html>
