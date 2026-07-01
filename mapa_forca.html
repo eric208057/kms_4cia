@@ -25,6 +25,14 @@
         .legend span { margin:0 10px; display:inline-block; }
         .swatch { display:inline-block; width:14px; height:14px; margin-right:4px; vertical-align:middle; border-radius:2px; }
         .swatch.adjacente { opacity:0.55; border:1px dashed #999; }
+        .legend span.clickable { cursor:pointer; padding:3px 8px; border-radius:6px; transition:background .15s; }
+        .legend span.clickable:hover { background:#2a2a2a; }
+        .legend-cpp { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:900px; margin:8px auto; }
+        .cpp-btn { cursor:pointer; background:#1a1a1a; border:2px solid #555; border-radius:10px; padding:8px 14px; font-size:0.85rem; color:#eee; text-align:left; transition:background .15s, border-color .15s; }
+        .cpp-btn:hover { background:#2a2a2a; }
+        .cpp-btn b { display:block; font-size:0.95rem; margin-bottom:2px; }
+        .cpp-btn small { color:#aaa; }
+
     </style>
 </head>
 <body>
@@ -38,6 +46,8 @@
         <div class="legend" id="legend-subsetor"></div>
         <div class="legend-title">Áreas adjacentes (unidades vizinhas)</div>
         <div class="legend" id="legend-adjacente"></div>
+        <div class="legend-title">CPP Diurno — vias de maior índice criminal e PEs (26JUN26 a 02JUL26)</div>
+        <div class="legend-cpp" id="legend-cpp"></div>
     </div>
 
     <div class="folium-map" id="map_forca_4cia"></div>
@@ -109,6 +119,9 @@
     ]
 };
 
+        // Guarda cada layer de polígono pelo nome, para a legenda poder "voar" até ele
+        const polygonLayers = {};
+
         L.geoJSON(cppData, {
             style: feature => {
                 const isSubsetor = feature.properties.tipo === 'subsetor';
@@ -124,18 +137,129 @@
             onEachFeature: (feature, layer) => {
                 const label = feature.properties.tipo === 'subsetor' ? 'Subsetor da 4ª Cia' : 'Área adjacente';
                 layer.bindPopup(`<b>${feature.properties.name}</b><br><small>${label}</small>`);
+                polygonLayers[feature.properties.name] = layer;
             }
         }).addTo(map);
 
-        // Monta a legenda dinamicamente a partir dos próprios dados
+        // Monta a legenda dinamicamente a partir dos próprios dados — clicável: voa até o polígono e abre o popup
         const legSub = document.getElementById('legend-subsetor');
         const legAdj = document.getElementById('legend-adjacente');
         cppData.features.forEach(f => {
             const target = f.properties.tipo === 'subsetor' ? legSub : legAdj;
             const swatchClass = f.properties.tipo === 'subsetor' ? 'swatch' : 'swatch adjacente';
             const span = document.createElement('span');
+            span.className = 'clickable';
             span.innerHTML = `<span class="${swatchClass}" style="background:${f.properties.fillColor};"></span>${f.properties.name}`;
+            span.onclick = () => {
+                const layer = polygonLayers[f.properties.name];
+                if (layer) {
+                    map.fitBounds(layer.getBounds().pad(0.15));
+                    layer.openPopup();
+                }
+            };
             target.appendChild(span);
+        });
+
+        // ───────────────────────────────────────────────
+        //  CPP DIURNO (26JUN26 a 02JUL26) — vias de maior índice criminal + PEs
+        //  Fonte: CPP - 26 a 02JUL26.pdf
+        // ───────────────────────────────────────────────
+        // horarios: PEs do turno DIURNO de cada CPP (CPP 01, 02 e 03), conforme o CPP de 26JUN26 a 02JUL26.
+        // CPP 01 tem 3 PEs; CPP 02 e CPP 03 têm 2 PEs cada — reflete exatamente o que consta no documento.
+        const cppDiurno = [
+            {
+                cpp: "CPP 01", subsetorNome: "SubSetor 1,2 e 5", viatura: "RP 01–02–05",
+                viaMaiorRisco: "Avenida dos Ourives",
+                pes: [
+                    { local: "Rua Góis Raposo x Av. General Leite de Castro", lat: -23.639962, lng: -46.5934297,
+                      horarios: [ { turno: "CPP 01 (Diurno)", tempo: "06:30–07:15" } ] },
+                    { local: "Avenida dos Ourives, 480", lat: -23.6546114, lng: -46.610111,
+                      horarios: [ { turno: "CPP 01 (Diurno)", tempo: "07:35–08:10" } ] },
+                    { local: "Av. dos Ourives x Rua Giovanni da Conegliano", lat: -23.6522401, lng: -46.5999938,
+                      horarios: [ { turno: "CPP 01 (Diurno)", tempo: "12:20–12:50" } ] }
+                ]
+            },
+            {
+                cpp: "CPP 02", subsetorNome: "SubSetor 3 e 4", viatura: "RP 03–04",
+                viaMaiorRisco: "Avenida Miguel Estéfano (conforme capa do CPP — ver observação)",
+                pes: [
+                    { local: "Av. Padre Arlindo Vieira x Rua Alm. João de Faria Lima", lat: -23.6410, lng: -46.6065,
+                      horarios: [ { turno: "CPP 02 (Diurno)", tempo: "11:10–11:50" } ] },
+                    { local: "Av. Padre Arlindo Vieira x Rua Giovanni Carnovali", lat: -23.6435239, lng: -46.6038781,
+                      horarios: [ { turno: "CPP 02 (Diurno)", tempo: "16:30–17:10" } ] }
+                ]
+            },
+            {
+                cpp: "CPP 03", subsetorNome: "SubSetor 6 e 7", viatura: "RP 06–07",
+                viaMaiorRisco: "Avenida Padre Arlindo Vieira (conforme capa do CPP — ver observação)",
+                pes: [
+                    { local: "Av. Miguel Estéfano x Rua Yoshio Takata", lat: -23.634223, lng: -46.6283017,
+                      horarios: [ { turno: "CPP 03 (Diurno)", tempo: "09:10–10:10" } ] },
+                    { local: "Av. Miguel Estéfano x Rua Dr. José Bento Ferreira", lat: -23.6353508, lng: -46.6285701,
+                      horarios: [ { turno: "CPP 03 (Diurno)", tempo: "17:30–18:10" } ] }
+                ]
+            }
+        ];
+
+        const peIcon = L.AwesomeMarkers.icon({icon: 'flag', markerColor: 'darkred', prefix: 'fa', iconColor: 'white'});
+        const cppMarkerGroups = {};
+
+        // ───────────────────────────────────────────────
+        //  SEDE DA 4ª CIA/PM (46º BPM/M)
+        //  Fonte: policiamilitar.sp.gov.br/unidades/cpam2/cias4.html
+        // ───────────────────────────────────────────────
+        const sedeIcon = L.AwesomeMarkers.icon({icon: 'star', markerColor: 'red', prefix: 'fa', iconColor: 'white'});
+        const sedeMarker = L.marker([-23.6418375, -46.5960601], { icon: sedeIcon, zIndexOffset: 1000 }).addTo(map)
+            .bindPopup(`
+                <b>Sede da 4ª Cia/PM (46º BPM/M)</b><br>
+                Rua Francisco Bautista, 471 - Jd. Sta. Emília<br>
+                São Paulo/SP - CEP 04183-070<br>
+                Tel: (11) 2215-8534<br><br>
+                <a href="https://www.google.com/maps/search/?api=1&query=-23.6418375,-46.5960601" target="_blank" rel="noopener" class="popup-link">
+                    Abrir no Google Maps →
+                </a>
+            `);
+
+        // Entrada da sede na legenda — clicável, igual aos subsetores (inserida no topo do painel)
+        const controlPanel = document.querySelector('.control-panel');
+        const legSedeTitle = document.createElement('div');
+        legSedeTitle.className = 'legend-title';
+        legSedeTitle.textContent = 'Sede da 4ª Cia';
+        const legSedeRow = document.createElement('div');
+        legSedeRow.className = 'legend';
+        const sedeSpan = document.createElement('span');
+        sedeSpan.className = 'clickable';
+        sedeSpan.innerHTML = '<span class="swatch" style="background:#e0141a;"></span>Rua Francisco Bautista, 471 - Jd. Sta. Emília';
+        sedeSpan.onclick = () => {
+            map.setView(sedeMarker.getLatLng(), 16);
+            sedeMarker.openPopup();
+        };
+        legSedeRow.appendChild(sedeSpan);
+        controlPanel.insertBefore(legSedeRow, controlPanel.firstChild);
+        controlPanel.insertBefore(legSedeTitle, controlPanel.firstChild);
+
+        cppDiurno.forEach(c => {
+            const group = [];
+            c.pes.forEach(p => {
+                const horariosHtml = p.horarios
+                    .map(h => `<b>${h.turno}:</b> ${h.tempo}`)
+                    .join('<br>');
+                const m = L.marker([p.lat, p.lng], { icon: peIcon }).addTo(map)
+                    .bindPopup(`<b>PE — ${p.local}</b><br><br>${horariosHtml}`);
+                group.push(m);
+            });
+            cppMarkerGroups[c.cpp] = group;
+
+            // Botão da legenda CPP: ao clicar, voa até o subsetor E abre os popups dos PEs
+            const btn = document.createElement('div');
+            btn.className = 'cpp-btn';
+            btn.innerHTML = `<b>${c.cpp} — ${c.viatura}</b>${c.subsetorNome}<br><small>Via de maior risco: ${c.viaMaiorRisco}</small>`;
+            btn.onclick = () => {
+                const layer = polygonLayers[c.subsetorNome];
+                if (layer) map.fitBounds(layer.getBounds().pad(0.15));
+                group.forEach((m, i) => setTimeout(() => m.openPopup(), i * 300));
+            };
+            document.getElementById('legend-cpp').appendChild(btn);
         });
 
         // Ajusta a visão para enquadrar todos os polígonos
