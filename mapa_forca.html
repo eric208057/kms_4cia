@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa Força - 4ª Cia</title>
+    <title>Mapa 4° Cia</title>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.min.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
     <style>
         body { margin:0; padding:0; font-family:Arial, sans-serif; background:#000; color:#fff; min-height:100vh; display:flex; flex-direction:column; }
@@ -32,12 +34,14 @@
         .cpp-btn:hover { background:#2a2a2a; }
         .cpp-btn b { display:block; font-size:0.95rem; margin-bottom:2px; }
         .cpp-btn small { color:#aaa; }
+        .locate-btn { background:#1565C0; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:0.95rem; font-weight:bold; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.5); white-space:nowrap; }
+        .locate-btn:hover { background:#1976D2; }
 
     </style>
 </head>
 <body>
 
-    <header><h1>Mapa Força - 4ª Cia</h1></header>
+    <header><h1>Mapa 4° Cia</h1></header>
 
     <a href="index.html" class="back-btn">← Voltar à 4ª Cia</a>
 
@@ -135,7 +139,8 @@
                 };
             },
             onEachFeature: (feature, layer) => {
-                const label = feature.properties.tipo === 'subsetor' ? 'Subsetor da 4ª Cia' : 'Área adjacente';
+                const cppLabel = { "SubSetor 1,2 e 5": "CPP 01", "SubSetor 3 e 4": "CPP 02", "SubSetor 6 e 7": "CPP 03" };
+                const label = feature.properties.tipo === 'subsetor' ? (cppLabel[feature.properties.name] || feature.properties.name) : 'Área adjacente';
                 layer.bindPopup(`<b>${feature.properties.name}</b><br><small>${label}</small>`);
                 polygonLayers[feature.properties.name] = layer;
             }
@@ -268,6 +273,68 @@
 
         setTimeout(() => map.invalidateSize(), 300);
         window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 200));
+
+        // ── LOCALIZAÇÃO EM TEMPO REAL ──────────────────────────────────
+        let _locMarker = null, _locCircle = null, _followMe = true;
+
+        const LocBtn = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd() {
+                const btn = L.DomUtil.create('button', 'locate-btn');
+                btn.innerHTML = '&#x1F4CD; Minha localização';
+                btn.title = 'Centralizar na minha posição';
+                L.DomEvent.on(btn, 'click', L.DomEvent.stopPropagation);
+                btn.onclick = () => {
+                    _followMe = true;
+                    if (_locMarker) map.setView(_locMarker.getLatLng(), 16);
+                };
+                return btn;
+            }
+        });
+        new LocBtn().addTo(map);
+
+        map.on('locationfound', e => {
+            const latlng = e.latlng, acc = e.accuracy;
+            if (!_locMarker) {
+                _locCircle = L.circle(latlng, { radius: acc / 2, color: '#1E88E5', weight: 1, fillOpacity: 0.12 }).addTo(map);
+                _locMarker = L.circleMarker(latlng, {
+                    radius: 9, color: '#fff', weight: 2.5,
+                    fillColor: '#1E88E5', fillOpacity: 1
+                }).addTo(map).bindPopup('Você está aqui');
+            } else {
+                _locMarker.setLatLng(latlng);
+                _locCircle.setLatLng(latlng).setRadius(acc / 2);
+            }
+            if (_followMe) map.setView(latlng, map.getZoom());
+        });
+
+        map.on('drag', () => { _followMe = false; });
+
+        map.on('locationerror', e => {
+            console.warn('Localização indisponível:', e.message);
+        });
+
+        map.locate({ watch: true, enableHighAccuracy: true, maximumAge: 5000 });
+        // ──────────────────────────────────────────────────────────────
+
+        // ── BUSCA DE ENDEREÇO ──────────────────────────────────────────
+        let _searchMarker = null;
+        L.Control.geocoder({
+            defaultMarkGeocode: false,
+            placeholder: 'Buscar rua, endereço...',
+            collapsed: false,
+            geocoder: L.Control.Geocoder.nominatim({
+                geocodingQueryParams: { countrycodes: 'br' }
+            })
+        }).on('markgeocode', function(e) {
+            if (_searchMarker) map.removeLayer(_searchMarker);
+            _searchMarker = L.marker(e.geocode.center)
+                .addTo(map)
+                .bindPopup(`<b>${e.geocode.name}</b>`)
+                .openPopup();
+            map.setView(e.geocode.center, 17);
+        }).addTo(map);
+        // ──────────────────────────────────────────────────────────────
     </script>
 </body>
 </html>
